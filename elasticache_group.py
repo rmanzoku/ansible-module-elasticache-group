@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # coding: utf-8
 
 try:
@@ -116,7 +116,7 @@ def main():
     # Connect to AWS
     try:
         region, ec2_url, aws_connect_kwargs = get_aws_connection_info(module, boto3=True)
-        conn = boto3_conn(module, conn_type="client", resource="rds", region=region,
+        conn = boto3_conn(module, conn_type="client", resource="elasticache", region=region,
                           **aws_connect_kwargs)
     except NoCredentialsError as ex:
         module.fail_json(msg=ex.message)
@@ -140,7 +140,7 @@ def main():
     else:
         try:
             conn.create_cache_security_group(CacheSecurityGroupName=module.params['name'],
-                                          CacheSecurityGroupDescription=module.params['description'])
+                                             Description=module.params['description'])
             changed = True
         except ClientError as ex:
             if ex.response['Error']['Code'] == "CacheSecurityGroupAlreadyExists":
