@@ -33,8 +33,8 @@ def ec2groups_grants(module, conn, name, present_ec2groups, desire_ec2groups):
     if len(authorize_ec2groups) != 0:
         for i in authorize_ec2groups:
             try:
-                conn.authorize_db_security_group_ingress(
-                    DBSecurityGroupName=name,
+                conn.authorize_cache_security_group_ingress(
+                    CacheSecurityGroupName=name,
                     EC2SecurityGroupName=i['group_name'],
                     EC2SecurityGroupOwnerId=i['group_owner_id']
                 )
@@ -44,8 +44,8 @@ def ec2groups_grants(module, conn, name, present_ec2groups, desire_ec2groups):
     if len(revoke_ec2groups) != 0:
         for i in revoke_ec2groups:
             try:
-                conn.revoke_db_security_group_ingress(
-                    DBSecurityGroupName=name,
+                conn.revoke_cache_security_group_ingress(
+                    CacheSecurityGroupName=name,
                     EC2SecurityGroupName=i['group_name'],
                     EC2SecurityGroupOwnerId=i['group_owner_id']
                 )
@@ -66,8 +66,8 @@ def ipranges_grants(module, conn, name, present_ipranges, desire_ipranges):
 
         try:
             for i in authorize_ipranges:
-                conn.authorize_db_security_group_ingress(
-                    DBSecurityGroupName=name,
+                conn.authorize_cache_security_group_ingress(
+                    CacheSecurityGroupName=name,
                     CIDRIP=i
                 )
         except ClientError as ex:
@@ -76,8 +76,8 @@ def ipranges_grants(module, conn, name, present_ipranges, desire_ipranges):
     if len(revoke_ipranges) != 0:
         try:
             for i in revoke_ipranges:
-                conn.revoke_db_security_group_ingress(
-                    DBSecurityGroupName=name,
+                conn.revoke_cache_security_group_ingress(
+                    CacheSecurityGroupName=name,
                     CIDRIP=i
                 )
         except ClientError as ex:
@@ -126,10 +126,10 @@ def main():
     # Absent
     if module.params['state'] == "absent":
         try:
-            conn.delete_db_security_group(DBSecurityGroupName=module.params['name'])
+            conn.delete_cache_security_group(CacheSecurityGroupName=module.params['name'])
             changed = True
         except ClientError as ex:
-            if ex.response['Error']['Code'] == "DBSecurityGroupNotFound":
+            if ex.response['Error']['Code'] == "CacheSecurityGroupNotFound":
                 changed = False
             else:
                 module.fail_json(msg=ex.response['Error']['Message'])
@@ -139,36 +139,36 @@ def main():
     # Present
     else:
         try:
-            conn.create_db_security_group(DBSecurityGroupName=module.params['name'],
-                                          DBSecurityGroupDescription=module.params['description'])
+            conn.create_cache_security_group(CacheSecurityGroupName=module.params['name'],
+                                          CacheSecurityGroupDescription=module.params['description'])
             changed = True
         except ClientError as ex:
-            if ex.response['Error']['Code'] == "DBSecurityGroupAlreadyExists":
+            if ex.response['Error']['Code'] == "CacheSecurityGroupAlreadyExists":
                 changed = False
             else:
                 module.fail_json(msg=ex.response['Error']['Message'])
 
     # Security group exists
-    result = conn.describe_db_security_groups(DBSecurityGroupName=module.params['name'])
+    result = conn.describe_cache_security_groups(CacheSecurityGroupName=module.params['name'])
 
     # IP CIDR based roles
-    if len(result['DBSecurityGroups'][0]['IPRanges']) == 0:
+    if len(result['CacheSecurityGroups'][0]['IPRanges']) == 0:
         present_ipranges = []
     else:
-        present_ipranges = [i['CIDRIP'] for i in result['DBSecurityGroups'][0]['IPRanges']
+        present_ipranges = [i['CIDRIP'] for i in result['CacheSecurityGroups'][0]['IPRanges']
                             if ((i['Status'] == "authorized") or (i['Status'] == "authorizing"))]
 
     changed = ipranges_grants(module, conn, module.params['name'],
                               present_ipranges, module.params['ip_ranges']) or changed
 
     # ec2 security group based rules
-    if len(result['DBSecurityGroups'][0]['EC2SecurityGroups']) == 0:
+    if len(result['CacheSecurityGroups'][0]['EC2SecurityGroups']) == 0:
         present_ec2groups = []
     else:
         present_ec2groups = [
             {"group_owner_id": i['EC2SecurityGroupOwnerId'],
              "group_name": i['EC2SecurityGroupName']}
-            for i in result['DBSecurityGroups'][0]['EC2SecurityGroups']
+            for i in result['CacheSecurityGroups'][0]['EC2SecurityGroups']
             if ((i['Status'] == "authorized") or (i['Status'] == "authorizing"))]
 
     changed = ec2groups_grants(module, conn, module.params['name'],
