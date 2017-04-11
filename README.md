@@ -1,1 +1,1 @@
-# ansible-module-rds-group
+# ansible-module-elasticache-group
