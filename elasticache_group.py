@@ -55,37 +55,6 @@ def ec2groups_grants(module, conn, name, present_ec2groups, desire_ec2groups):
     return True
 
 
-def ipranges_grants(module, conn, name, present_ipranges, desire_ipranges):
-    authorize_ipranges = list(set(desire_ipranges) - set(present_ipranges))
-    revoke_ipranges = list(set(present_ipranges) - set(desire_ipranges))
-
-    if (len(authorize_ipranges) == 0) and (len(revoke_ipranges) == 0):
-        return False
-
-    if len(authorize_ipranges) != 0:
-
-        try:
-            for i in authorize_ipranges:
-                conn.authorize_cache_security_group_ingress(
-                    CacheSecurityGroupName=name,
-                    CIDRIP=i
-                )
-        except ClientError as ex:
-            module.fail_json(msg=ex.response['Error']['Message'])
-
-    if len(revoke_ipranges) != 0:
-        try:
-            for i in revoke_ipranges:
-                conn.revoke_cache_security_group_ingress(
-                    CacheSecurityGroupName=name,
-                    CIDRIP=i
-                )
-        except ClientError as ex:
-            module.fail_json(msg=ex.response['Error']['Message'])
-
-    return True
-
-
 def main():
 
     argument_spec = ec2_argument_spec()
@@ -93,7 +62,6 @@ def main():
         dict(
             name=dict(type='str', required=True),
             description=dict(type='str', required=True),
-            ip_ranges=dict(type='list', default=[]),
             ec2_security_groups=dict(type='list', default=[]),
             state=dict(default='present', type='str', choices=['present', 'absent']),
         )
@@ -150,16 +118,6 @@ def main():
 
     # Security group exists
     result = conn.describe_cache_security_groups(CacheSecurityGroupName=module.params['name'])
-
-    # IP CIDR based roles
-    if len(result['CacheSecurityGroups'][0]['IPRanges']) == 0:
-        present_ipranges = []
-    else:
-        present_ipranges = [i['CIDRIP'] for i in result['CacheSecurityGroups'][0]['IPRanges']
-                            if ((i['Status'] == "authorized") or (i['Status'] == "authorizing"))]
-
-    changed = ipranges_grants(module, conn, module.params['name'],
-                              present_ipranges, module.params['ip_ranges']) or changed
 
     # ec2 security group based rules
     if len(result['CacheSecurityGroups'][0]['EC2SecurityGroups']) == 0:
