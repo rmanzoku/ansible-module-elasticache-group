@@ -1,0 +1,54 @@
+- hosts: localhost
+  connection: local
+  tasks:
+    # - name: Absent
+    #   rds_group:
+    #     state: absent
+    #     region: ap-northeast-1
+    #     profile: "profile steak"
+    #     name: rmanzoku_group
+    #     description: test group 1
+
+    # - pause: seconds=2
+
+    # - name: Present
+    #   rds_group:
+    #     state: present
+    #     region: ap-northeast-1
+    #     profile: "profile steak"
+    #     name: rmanzoku_group
+    #     description: test group 1
+
+    # - pause: seconds=2
+
+    - name: Authorize
+      rds_group:
+        state: present
+        region: ap-northeast-1
+        profile: "profile steak"
+        name: rmanzoku_group
+        description: aaaa
+        ec2_security_groups:
+          - group_owner_id: 482902743189
+            group_name: peanuts-security-group
+          - group_owner_id: 482902743189
+            group_name: blog-secg
+        ip_ranges:
+          - 13.112.51.154/32
+          - 13.112.51.152/32
+
+    - pause: seconds=2
+
+    - name: Revoke
+      rds_group:
+        state: present
+        region: ap-northeast-1
+        profile: "profile steak"
+        name: rmanzoku_group
+        description: aaaa
+        ec2_security_groups:
+          - group_owner_id: 482902743189
+            group_name: peanuts-security-group
+        ip_ranges:
+          - 13.112.51.154/32
+
